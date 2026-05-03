@@ -42,7 +42,7 @@ from pathlib import Path
 # Versioning
 # ---------------------------------------------------------------------------
 
-CLI_VERSION = "0.13.0"
+CLI_VERSION = "0.13.1"
 SCHEMA_VERSION = "1.9.0"
 
 # ---------------------------------------------------------------------------
@@ -262,7 +262,15 @@ def _progress(event: str, **fields) -> None:
     elif event == "source_miss":
         _log_text(f"  [{fields.get('source', '?')}] no PDF")
     elif event == "download_error":
-        _log_text(f"  download failed: {fields.get('reason', '?')}")
+        reason = fields.get("reason", "?")
+        status = fields.get("http_status")
+        detail = fields.get("error")
+        if status:
+            _log_text(f"  download failed: {reason} (HTTP {status})")
+        elif detail:
+            _log_text(f"  download failed: {reason} ({detail})")
+        else:
+            _log_text(f"  download failed: {reason}")
     elif event == "download_ok":
         _log_text(f"  saved → {fields.get('file', '?')}")
     elif event == "download_skip":
@@ -409,7 +417,14 @@ def _download(url: str, dest: Path, *, timeout: int) -> str | None:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             data = r.read(MAX_PDF_SIZE + 1)
     except Exception as e:
-        _progress("download_error", reason="network_error", error=str(e))
+        # Surface HTTP status when present (urllib.error.HTTPError carries .code).
+        # Lets agents distinguish a 403 publisher block (try a VPN / different
+        # source) from a generic timeout (just retry).
+        http_status = getattr(e, "code", None)
+        fields: dict = {"reason": "network_error", "error": str(e)}
+        if isinstance(http_status, int):
+            fields["http_status"] = http_status
+        _progress("download_error", **fields)
         return "network_error"
     if len(data) > MAX_PDF_SIZE:
         _progress("download_error", reason="size_exceeded", bytes=len(data), limit=MAX_PDF_SIZE)
@@ -717,37 +732,112 @@ _PUBLISHER_DIRECT_TEMPLATES: dict[str, tuple[str, str]] = {
     "10.1177/": ("sage", "https://journals.sagepub.com/doi/pdf/{doi}"),
     "10.1080/": ("tandf", "https://www.tandfonline.com/doi/pdf/{doi}"),
     # 10.1016/ (Elsevier / Cell Press) needs PII lookup — handled separately below.
+    # 10.3390/ (MDPI) needs slug lookup — handled separately below; the
+    # canonical www.mdpi.com PDF URL is gated by Akamai and 403s many
+    # data-center / non-Western IPs even on OA papers, so we route via the
+    # pub.mdpi-res.com CDN instead (see _mdpi_pdf_candidates).
 }
 
 
-def _try_publisher_direct(doi: str, *, timeout: int) -> tuple[str | None, str | None]:
-    """Construct a publisher-side direct PDF URL by DOI prefix.
+# MDPI uses a short journal abbreviation in its DOI suffix (e.g. "app" for
+# Applied Sciences) but a longer slug in the CDN URL (e.g. "applsci"). For
+# many journals these are identical — ijms, molecules, sensors, cells,
+# nutrients, cancers, foods, plants, etc. — and the fallback below covers
+# them. Only journals whose slug differs from the short need to live here.
+# Source: MDPI's own pub.mdpi-res.com URL convention, verified against
+# representative DOIs from each listed journal.
+_MDPI_SHORT_TO_SLUG: dict[str, str] = {
+    "app": "applsci",
+    "su": "sustainability",
+    "ma": "materials",
+    "en": "energies",
+    "ani": "animals",
+    "polym": "polymers",
+    "antiox": "antioxidants",
+    "math": "mathematics",
+    "sym": "symmetry",
+    "nano": "nanomaterials",
+    "met": "metals",
+    "catal": "catalysts",
+    "cryst": "crystals",
+    "atmos": "atmosphere",
+    "info": "information",
+    "md": "marinedrugs",
+    "fi": "futureinternet",
+    "f": "forests",
+    "w": "water",
+    "v": "viruses",
+    "d": "diversity",
+}
 
-    Returns (url, publisher_label) or (None, None) if no template matches.
-    Does not itself check whether the user is authorized — the actual HTTP
-    fetch will reveal that via 401/403 or an HTML response.
+# DOI suffix shape for MDPI: <alpha-short><yy><iss><art>. Year and issue
+# are 2 digits each; article fills the rest (1+ digits, padded to 5 in URL).
+_MDPI_DOI_SUFFIX_RE = re.compile(r"^([a-z]+)(\d{2})(\d{2})(\d+)$")
+
+
+def _mdpi_pdf_candidates(doi: str) -> list[str]:
+    """CDN URL candidates for an MDPI DOI (10.3390/...).
+
+    Returns 1-2 candidate URLs on pub.mdpi-res.com. Empty list if the DOI
+    suffix doesn't match the expected MDPI shape (rare; older DOIs).
+
+    Two URLs are returned when the short prefix has a known mapping AND
+    differs from the short itself, so the download loop can fall back to
+    the short-as-slug guess if the mapping is wrong or stale.
+    """
+    if not doi.startswith("10.3390/"):
+        return []
+    suffix = doi[len("10.3390/"):]
+    m = _MDPI_DOI_SUFFIX_RE.match(suffix)
+    if not m:
+        return []
+    short, vol, _iss, art = m.groups()
+    art5 = art.zfill(5)
+    slugs: list[str] = []
+    mapped = _MDPI_SHORT_TO_SLUG.get(short)
+    if mapped:
+        slugs.append(mapped)
+    if short not in slugs:
+        slugs.append(short)
+    return [
+        f"https://pub.mdpi-res.com/{s}/{s}-{vol}-{art5}/article_deploy/{s}-{vol}-{art5}.pdf"
+        for s in slugs
+    ]
+
+
+def _try_publisher_direct(doi: str, *, timeout: int) -> list[tuple[str, str]]:
+    """Construct publisher-side direct PDF URL candidates by DOI prefix.
+
+    Returns a list of (url, publisher_label) tuples in priority order, or
+    an empty list if no template matches. Multiple candidates are returned
+    when the publisher has more than one viable host (e.g. MDPI with both
+    a mapped slug and a fallback slug). The actual HTTP fetch will reveal
+    authorization failures via 401/403 or HTML responses.
     """
     if doi.startswith("10.1016/"):
         # Elsevier: resolve DOI -> PII via Crossref, then build sciencedirect URL.
         try:
             data = _get_json(f"https://api.crossref.org/works/{doi}", timeout=timeout)
         except Exception:
-            return None, None
+            return []
         ids = (data.get("message") or {}).get("alternative-id") or []
         pii = next(
             (i for i in ids if isinstance(i, str) and i.startswith("S") and len(i) >= 16),
             None,
         )
         if not pii:
-            return None, None
-        return f"https://www.sciencedirect.com/science/article/pii/{pii}/pdfft", "elsevier"
+            return []
+        return [(f"https://www.sciencedirect.com/science/article/pii/{pii}/pdfft", "elsevier")]
+
+    if doi.startswith("10.3390/"):
+        return [(url, "mdpi") for url in _mdpi_pdf_candidates(doi)]
 
     for prefix, (label, tmpl) in _PUBLISHER_DIRECT_TEMPLATES.items():
         if doi.startswith(prefix):
             suffix = doi[len(prefix):]
-            return tmpl.format(doi=doi, suffix=suffix), label
+            return [(tmpl.format(doi=doi, suffix=suffix), label)]
 
-    return None, None
+    return []
 
 
 # ---------------------------------------------------------------------------
@@ -1260,11 +1350,12 @@ def fetch(
     # caller's IP / cookies / EZproxy are what actually authorize the fetch.
     if _is_institutional():
         _progress("source_try", doi=doi, source="publisher_direct")
-        pub_url, pub_label = _try_publisher_direct(doi, timeout=timeout)
-        if pub_url:
+        pub_candidates = _try_publisher_direct(doi, timeout=timeout)
+        if pub_candidates:
             sources_tried.append("publisher_direct")
-            _progress("source_hit", doi=doi, source="publisher_direct", pdf_url=pub_url, publisher=pub_label)
-            _add("publisher_direct", pub_url)
+            for pub_url, pub_label in pub_candidates:
+                _progress("source_hit", doi=doi, source="publisher_direct", pdf_url=pub_url, publisher=pub_label)
+                _add("publisher_direct", pub_url)
         else:
             _progress("source_miss", doi=doi, source="publisher_direct", reason="no_template_for_doi_prefix")
 
