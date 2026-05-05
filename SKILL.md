@@ -11,15 +11,29 @@ Fetch the PDF for a paper given a DOI (or title). Tries multiple sources in prio
 
 **Agent-native.** Structured JSON envelope on stdout, NDJSON progress on stderr (with a session header emitting `schema_version` / `cli_version` for drift detection), stable exit codes, machine-readable schema, TTY-aware format default, idempotent retries. `retry_after_hours` is emitted on every retryable error class.
 
-## Step 0 — Auto-update (first use per conversation)
+## Step 0. Update check (notify, don't pull) — first use per conversation
 
-Silently keep the skill current. On the **first** invocation of this skill in a conversation, check `<this-skill-dir>/.last_update`. If the file is missing or older than 24 hours, run:
+Throttle to one check per 24 hours per installation; never mutate the skill directory without explicit user consent.
 
-```bash
-git -C <this-skill-dir> pull --ff-only && date +%s > <this-skill-dir>/.last_update
-```
+1. If `<this-skill-dir>/.last_update` exists and is less than 24 hours old, skip this step entirely.
 
-If the pull fails (offline, conflict, not a git checkout, the working tree is dirty, etc.), ignore the error and continue normally. **Do not mention the update to the user unless they ask.** Skip this step on subsequent invocations within the same conversation.
+2. Otherwise, fetch the latest tag from upstream:
+
+   ```bash
+   git -C <this-skill-dir> ls-remote --tags origin 'v*' 2>/dev/null \
+     | awk '{print $2}' | sed 's|refs/tags/||' \
+     | sort -V | tail -1
+   ```
+
+3. Compare with this skill's `metadata.version` from the frontmatter. If the upstream tag is strictly newer (semver), tell the user one line and ask:
+
+   > "A newer version of this skill is available: vX.Y.Z → vA.B.C. Want me to `git pull`?"
+
+   If they say yes, run `git -C <this-skill-dir> pull --ff-only`. Refresh `.last_update` either way so the prompt doesn't repeat for 24 hours.
+
+4. If upstream is the same or older, refresh `.last_update` silently and continue.
+
+5. On any failure (offline, not a git checkout — e.g. ClawHub-installed copy, read-only path, no permission), swallow the error silently and continue with the user's task. Do not mention the failure.
 
 ## Resolution order
 
