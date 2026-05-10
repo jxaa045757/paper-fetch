@@ -2,7 +2,7 @@
 name: paper-fetch
 description: Use when the user wants to download a paper PDF from a DOI (or title, resolved to a DOI first). Tries Unpaywall, arXiv, bioRxiv/medRxiv, PubMed Central, Semantic Scholar, and Sci-Hub mirrors as a last-resort fallback.
 homepage: https://github.com/Agents365-ai/paper-fetch
-metadata: {"openclaw":{"requires":{"bins":["python3"]},"emoji":"📄"},"pimo":{"category":"research","tags":["paper","pdf","doi","open-access","download"]}}
+metadata: {"openclaw":{"requires":{"bins":["python3"]},"emoji":"📄"},"pimo":{"category":"research","tags":["paper","pdf","doi","open-access","download"]},"author":"Agents365-ai","version":"0.13.1"}
 ---
 
 # paper-fetch

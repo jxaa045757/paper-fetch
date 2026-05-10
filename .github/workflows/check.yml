@@ -29,20 +29,20 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Show version
-        run: python scripts/fetch.py --version
+        run: python skills/paper-fetch/scripts/fetch.py --version
 
       - name: Smoke — schema subcommand parses as JSON
         run: |
-          python scripts/fetch.py schema | python -c "import json,sys; d=json.load(sys.stdin); assert d['ok'] is True, d; assert 'cli_version' in d['data']; print('schema ok, cli', d['data']['cli_version'])"
+          python skills/paper-fetch/scripts/fetch.py schema | python -c "import json,sys; d=json.load(sys.stdin); assert d['ok'] is True, d; assert 'cli_version' in d['data']; print('schema ok, cli', d['data']['cli_version'])"
 
       - name: Smoke — help exits 0
-        run: python scripts/fetch.py --help > /dev/null
+        run: python skills/paper-fetch/scripts/fetch.py --help > /dev/null
 
       - name: Smoke — validation error exits 3 with structured envelope
         shell: bash
         run: |
           set +e
-          out=$(python scripts/fetch.py --format json)
+          out=$(python skills/paper-fetch/scripts/fetch.py --format json)
           rc=$?
           set -e
           if [ "$rc" != "3" ]; then

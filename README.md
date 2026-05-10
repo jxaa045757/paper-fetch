@@ -1,246 +1,155 @@
-# paper-fetch — Download Scientific papers automatically
+# paper-fetch — Download scientific paper PDFs by DOI 📄
 
-[中文文档](README_CN.md)
+[中文文档](README_CN.md) | [Unpaywall](https://unpaywall.org) | [Semantic Scholar](https://www.semanticscholar.org) | [bioRxiv API](https://api.biorxiv.org)
 
 ## What it does
 
-- Downloads paper PDFs from a **DOI** (or batch file of DOIs) via open-access sources
-- **6-source fallback chain**: [Unpaywall](https://unpaywall.org) → [Semantic Scholar](https://www.semanticscholar.org) `openAccessPdf` → [arXiv](https://arxiv.org) → [PubMed Central OA](https://pmc.ncbi.nlm.nih.gov) → [bioRxiv](https://www.biorxiv.org)/[medRxiv](https://www.medrxiv.org) → [Sci-Hub](https://www.sci-hub.pub) mirrors (last resort, on by default)
-- **Zero dependencies** — pure Python standard library, no `pip install` needed
-- **Auto-named output** — `{first_author}_{year}_{journal_abbrev}_{short_title}.pdf` (journal omitted if unknown; multi-word journals get ISO-style initials, e.g. *Proceedings of the National Academy of Sciences* → `PNAS`)
-- **Batch mode** — pass a file of DOIs with `--batch`, or pipe them in with `--batch -`
-- **Agent-native** — stable JSON envelope on stdout, NDJSON progress on stderr, machine-readable `schema` subcommand (with `deprecations` slot for forward-compat drift detection), TTY-aware format default, idempotent retries via `--idempotency-key`, typed exit codes (`0`/`1`/`3`/`4`), partial-success batches with `next` retry hints, per-source diagnostics in `result.source_detail` (e.g. which Sci-Hub mirror won, so an orchestrator can pin it via `PAPER_FETCH_SCIHUB_MIRRORS`)
-- **Safely retriable** — re-running skips already-downloaded files; `--idempotency-key` replays the exact envelope without any network I/O
-- **Self-updating** — when installed via `git clone`, the agent runs a synchronous `git pull --ff-only` on the first invocation per conversation, throttled to once per 24h via `<skill_dir>/.last_update`. Updates apply immediately. Zero user action required. Force an immediate check with `rm <skill_dir>/.last_update`.
+**Resolve a DOI (or title) to a PDF**
+- 7-source fallback chain: [Unpaywall](https://unpaywall.org) → [Semantic Scholar](https://www.semanticscholar.org) → [arXiv](https://arxiv.org) → [PubMed Central](https://pmc.ncbi.nlm.nih.gov) → [bioRxiv](https://www.biorxiv.org)/[medRxiv](https://www.medrxiv.org) → publisher direct *(institutional opt-in)* → [Sci-Hub](https://www.sci-hub.pub) mirrors *(last resort, on by default)*
+- Title-only input via `--title` — Crossref + Semantic Scholar resolution with confidence flags
+- Auto-named output: `{first_author}_{year}_{journal_abbrev}_{short_title}.pdf`
 
-## Discipline Coverage
+**Batch + agent-friendly**
+- `--batch dois.txt` or `--batch -` (stdin) for bulk download
+- `--idempotency-key` replays the exact envelope on retry without network I/O
+- `--stream` emits one NDJSON result per line as each DOI resolves
+- Skips already-downloaded files unless `--overwrite`
 
-**The skill is discipline-agnostic** — it works for any field, not just life sciences or computer science.
+**Built-in correctness**
+- Stable JSON envelope on stdout, NDJSON progress on stderr, machine-readable `schema` subcommand
+- TTY-aware format default, typed exit codes (`0`/`1`/`3`/`4`) for orchestrator routing
+- SSRF defense + `%PDF` magic-byte check + 50 MB size cap on every fetch
+- Zero runtime dependencies — pure Python stdlib
+
+Works with Claude Code, Codex, Hermes, OpenClaw, ClawHub, pi-mono, and SkillsMP — any agent that supports the [Agent Skills](https://agentskills.io) format.
+
+## Discipline coverage
+
+The skill is **discipline-agnostic** — it works for any field, not just life sciences or CS.
 
 | Source | Discipline scope |
 |---|---|
-| **Unpaywall** | ✅ All disciplines (covers every Crossref DOI — humanities, social sciences, physics, chemistry, economics, etc.) |
-| **Semantic Scholar** | ✅ All disciplines (cross-domain academic graph) |
-| **arXiv** | Physics, math, CS, statistics, quantitative finance, economics, EE |
-| **PubMed Central** | Biomedical only |
-| **bioRxiv / medRxiv** | Biology / medicine preprints only |
-| **Sci-Hub mirrors** | ✅ All disciplines (last-resort fallback when every OA / institutional source misses) |
+| Unpaywall | ✅ All disciplines (every Crossref DOI — humanities, social sciences, physics, chemistry, economics) |
+| Semantic Scholar | ✅ All disciplines (cross-domain academic graph) |
+| arXiv | Physics, math, CS, statistics, quant finance, economics, EE |
+| PubMed Central | Biomedical only |
+| bioRxiv / medRxiv | Biology / medicine preprints only |
+| Sci-Hub | ✅ All disciplines (last resort) |
 
-In practice, **Unpaywall + Semantic Scholar alone cover OA papers in chemistry, materials, economics, psychology, humanities, and every other field** via institutional repositories, SSRN, RePEc, and publisher-hosted OA copies. arXiv/PMC/bioRxiv are additional fallbacks for their specific domains, and Sci-Hub is the universal last resort.
-
-## Multi-Platform Support
-
-Works with all major AI coding agents that support the Agent Skills format:
-
-| Platform | Status | Details |
-|----------|--------|---------|
-| **Claude Code** | ✅ Full support | Native SKILL.md format |
-| **OpenClaw / ClawHub** | ✅ Full support | `metadata.openclaw` namespace |
-| **Hermes Agent** | ✅ Full support | Installable under research category |
-| **[pi-mono](https://github.com/badlogic/pi-mono)** | ✅ Full support | `metadata.pimo` namespace |
-| **OpenAI Codex** | ✅ Full support | `agents/openai.yaml` sidecar |
-| **SkillsMP** | ✅ Indexed | GitHub topics configured |
+In practice, **Unpaywall + Semantic Scholar alone cover OA papers in chemistry, materials, economics, psychology, humanities, and every other field** via institutional repositories, SSRN, RePEc, and publisher-hosted OA copies.
 
 ## Comparison
 
-### vs No Skill (native agent)
+### vs. native agent (no skill)
 
 | Feature | Native agent | This skill |
-|---------|-------------|------------|
-| Resolve DOI to PDF | Ad-hoc web search | Deterministic 5-source chain |
-| Unpaywall integration | No | Yes — highest OA coverage |
-| arXiv / PMC / bioRxiv fallback | Manual | Automatic |
-| Batch download | No | Yes — `--batch dois.txt` or `--batch -` (stdin) |
-| Consistent filenames | No | Yes — `author_year_title.pdf` |
-| Machine-readable schema | No | Yes — `fetch.py schema` |
-| Structured output | No | Stable JSON envelope + NDJSON progress |
-| Idempotent retries | No | `--idempotency-key` replays cached envelope |
-| Typed exit codes | No | `0`/`1`/`3`/`4` — orchestrator can route failures |
-| Dependencies | Varies | Python stdlib only |
+|---|---|---|
+| Resolve DOI to PDF | Ad-hoc web search | Deterministic 7-source chain |
+| Title → DOI resolution | Manual | `--title` (Crossref + S2 fallback, confidence flags) |
+| Batch download | ❌ | ✅ `--batch dois.txt` or `--batch -` |
+| Consistent filenames | ❌ | ✅ `author_year_journal_title.pdf` |
+| Machine-readable schema | ❌ | ✅ `fetch.py schema` |
+| Structured output | ❌ | ✅ JSON envelope + NDJSON progress |
+| Idempotent retries | ❌ | ✅ `--idempotency-key` |
+| Typed exit codes | ❌ | ✅ `0`/`1`/`3`/`4` |
+| SSRF + `%PDF` + size cap | ❌ | ✅ enforced |
 
 ## Prerequisites
 
-- **Python 3.8+** (standard library only, no extra packages)
-- **Unpaywall contact email** (optional but recommended) — set once:
+- `python3` (3.8+, stdlib only — no `pip install` needed)
+- (Recommended) An [Unpaywall contact email](https://unpaywall.org/products/api):
+
+  ```bash
+  export UNPAYWALL_EMAIL=you@example.com
+  ```
+
+Without it, Unpaywall is skipped and the remaining 6 sources still work.
+
+## Installation
 
 ```bash
-export UNPAYWALL_EMAIL=you@example.com
+# Any agent (Claude Code, Cursor, Copilot, etc.)
+npx skills add Agents365-ai/365-skills -g
+
+# Claude Code only
+> /plugin marketplace add Agents365-ai/365-skills
+> /plugin install paper-fetch
 ```
 
-Add it to `~/.zshrc` / `~/.bashrc` to persist. Without it, Unpaywall is skipped and the remaining 4 sources (Semantic Scholar, arXiv, PMC, bioRxiv/medRxiv) are still tried.
-
-## Skill Installation
-
-### Claude Code
-
-```bash
-# Global install
-git clone https://github.com/Agents365-ai/paper-fetch.git ~/.claude/skills/paper-fetch
-
-# Project-level install
-git clone https://github.com/Agents365-ai/paper-fetch.git .claude/skills/paper-fetch
-```
-
-### OpenClaw / ClawHub
-
-```bash
-clawhub install paper-fetch
-
-# Or manual
-git clone https://github.com/Agents365-ai/paper-fetch.git ~/.openclaw/skills/paper-fetch
-```
-
-### Hermes Agent
-
-```bash
-git clone https://github.com/Agents365-ai/paper-fetch.git ~/.hermes/skills/research/paper-fetch
-```
-
-Or add to `~/.hermes/config.yaml`:
-
-```yaml
-skills:
-  external_dirs:
-    - ~/myskills/paper-fetch
-```
-
-### pi-mono
-
-```bash
-git clone https://github.com/Agents365-ai/paper-fetch.git ~/.pimo/skills/paper-fetch
-```
-
-### OpenAI Codex
-
-```bash
-# User-level
-git clone https://github.com/Agents365-ai/paper-fetch.git ~/.agents/skills/paper-fetch
-
-# Project-level
-git clone https://github.com/Agents365-ai/paper-fetch.git .agents/skills/paper-fetch
-```
-
-### SkillsMP
-
-```bash
-skills install paper-fetch
-```
-
-### Installation paths summary
-
-| Platform | Global path | Project path |
-|----------|-------------|--------------|
-| Claude Code | `~/.claude/skills/paper-fetch/` | `.claude/skills/paper-fetch/` |
-| OpenClaw | `~/.openclaw/skills/paper-fetch/` | `skills/paper-fetch/` |
-| Hermes Agent | `~/.hermes/skills/research/paper-fetch/` | Via `external_dirs` |
-| pi-mono | `~/.pimo/skills/paper-fetch/` | — |
-| OpenAI Codex | `~/.agents/skills/paper-fetch/` | `.agents/skills/paper-fetch/` |
-| SkillsMP | N/A (installed via CLI) | N/A |
+Also published on [SkillsMP](https://skillsmp.com/) and [ClawHub](https://clawhub.ai/) — each handles updates through its own marketplace.
 
 ## Usage
 
-Single DOI:
+Just describe what you want:
 
-```bash
-python scripts/fetch.py 10.1038/s41586-021-03819-2
+```
+> Download the AlphaFold2 paper PDF to ~/papers
+
+> Fetch DOI 10.1038/s41586-020-2649-2
+
+> Batch-download every DOI from dois.txt
+
+> Find a PDF for "Attention Is All You Need" and save it
+
+> Preview the resolved PDF URL for 10.1126/science.abj8754 without downloading
 ```
 
-Custom output directory:
+Or call the script directly:
 
 ```bash
-python scripts/fetch.py 10.1038/s41586-021-03819-2 --out ~/papers
-```
+# Single DOI
+python skills/paper-fetch/scripts/fetch.py 10.1038/s41586-021-03819-2
 
-Batch mode:
+# By title (resolved to DOI via Crossref + S2 fallback)
+python skills/paper-fetch/scripts/fetch.py --title "Highly accurate protein structure prediction with AlphaFold"
 
-```bash
-cat > dois.txt <<EOF
-10.1038/s41586-021-03819-2
-10.1126/science.abj8754
-10.1101/2023.01.01.522400
-EOF
+# Dry-run preview (no download)
+python skills/paper-fetch/scripts/fetch.py 10.1038/s41586-020-2649-2 --dry-run
 
-python scripts/fetch.py --batch dois.txt --out ~/papers
-```
-
-Dry-run (preview without downloading):
-
-```bash
-python scripts/fetch.py 10.1038/s41586-020-2649-2 --dry-run
-```
-
-Human-readable text output:
-
-```bash
-python scripts/fetch.py 10.1038/s41586-020-2649-2 --format text
-```
-
-Pipe DOIs from another tool:
-
-```bash
-echo 10.1038/s41586-021-03819-2 | python scripts/fetch.py --batch -
-```
-
-Safely retriable batch (replay cached envelope on retry):
-
-```bash
-python scripts/fetch.py --batch dois.txt --out ~/papers \
+# Batch with idempotency
+python skills/paper-fetch/scripts/fetch.py --batch dois.txt --out ~/papers \
     --idempotency-key monday-review-batch
+
+# Pipe DOIs from another tool
+echo 10.1038/s41586-021-03819-2 | python skills/paper-fetch/scripts/fetch.py --batch -
+
+# Agent discovery
+python skills/paper-fetch/scripts/fetch.py schema --pretty
 ```
 
-Machine-readable self-description (for agents):
+Full flag reference and JSON envelope schema in [`skills/paper-fetch/SKILL.md`](skills/paper-fetch/SKILL.md).
+
+## Institutional access (opt-in)
+
+If your institution has a subscription, set `PAPER_FETCH_INSTITUTIONAL=1` to enable the publisher-direct fallback. Your IP / cookies / EZproxy authorize the fetch; the skill adds a 1 req/s rate limiter to keep batch jobs within publisher ToS.
 
 ```bash
-python scripts/fetch.py schema --pretty
+export PAPER_FETCH_INSTITUTIONAL=1
 ```
 
-Streaming NDJSON (one result per line as each DOI resolves):
+See [`plan/institutional-access.md`](plan/institutional-access.md) for design details.
 
-```bash
-python scripts/fetch.py --batch dois.txt --stream
-```
+## Known limitations
 
-Or just ask your agent naturally:
-
-> Download the AlphaFold2 paper PDF to my `~/papers` folder
-
-> Fetch the PDF for DOI 10.1038/s41586-020-2649-2
-
-> Download these three papers: 10.1038/s41586-021-03819-2, 10.1126/science.abj8754, 10.1101/2023.01.01.522400
-
-> Check if this paper has an open-access PDF available: 10.1038/s41586-020-2649-2
-
-> Batch download all DOIs from my dois.txt file into ~/papers
-
-## Resolution Order
-
-1. **Unpaywall** — best OA location across all publishers (highest hit rate)
-2. **Semantic Scholar** — `openAccessPdf` field + `externalIds` lookup
-3. **arXiv** — if the paper has an arXiv ID
-4. **PubMed Central OA subset** — if the paper has a PMCID
-5. **bioRxiv / medRxiv** — DOI prefix `10.1101/`
-6. **Publisher direct** — institutional mode only (`PAPER_FETCH_INSTITUTIONAL=1`); your subscription IP / cookies / EZproxy authorize the fetch
-7. **Sci-Hub mirrors** — last resort, on by default. Tries `PAPER_FETCH_SCIHUB_MIRRORS` (or built-in defaults: `sci-hub.ru`, `sci-hub.st`, `sci-hub.su`, `sci-hub.box`, `sci-hub.red`, `sci-hub.al`, `sci-hub.mk`, `sci-hub.ee`); on full miss, scrapes `https://www.sci-hub.pub/` once for fresh mirrors. Disable with `PAPER_FETCH_NO_SCIHUB=1`.
-8. Otherwise → report failure with metadata (title/authors) for ILL
-
-## Files
-
-- `SKILL.md` — **the only required file**. Loaded by all platforms.
-- `scripts/fetch.py` — the downloader (pure stdlib Python)
-- `agents/openai.yaml` — OpenAI Codex sidecar configuration
-- `README.md` — this file
-- `README_CN.md` — Chinese documentation
-
-## Known Limitations
-
-- **Some publisher redirects** return an HTML landing page instead of a PDF; the script validates the `%PDF` header and fails cleanly in that case
-- **No authentication** — institutional proxies (EZproxy / OpenAthens) are not supported in this version
-- **SSRF defense** — every outbound fetch rejects private IPs, non-http(s) schemes, non-80/443 ports, and cloud-metadata hostnames
-- **50 MB size limit** — per-PDF download cap to prevent runaway downloads
+- **Some publisher redirects** return an HTML landing page; the `%PDF` header check rejects them
+- **No browser automation** — no CAPTCHA solving, no Playwright, no stealth
+- **SSRF defense** rejects private IPs, non-http(s) schemes, non-80/443 ports, cloud metadata hosts
+- **50 MB cap** per PDF download
 
 ## License
 
 MIT
+
+## Community
+
+Join us for help, Q&A, and updates:
+
+- **Discord:** https://discord.gg/79JF5Atuk
+- **WeChat:** scan the QR code below
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Agents365-ai/images_payment/main/qrcode/agents365ai_wechat_1.png" width="200" alt="WeChat Community Group">
+</p>
 
 ## Support
 

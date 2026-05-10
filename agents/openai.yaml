@@ -2,7 +2,7 @@
 name: paper-fetch
 version: 0.13.0
 description: Download paper PDFs by DOI (Unpaywall, Semantic Scholar, arXiv, PMC, bioRxiv/medRxiv, Sci-Hub mirrors).
-entry: SKILL.md
+entry: skills/paper-fetch/SKILL.md
 
 ui:
   icon: 📄
