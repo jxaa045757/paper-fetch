@@ -22,6 +22,9 @@ tests/
 # Internal planning docs (not part of the published skill)
 plan/
 
+# Local agent instructions (not part of the published skill)
+CLAUDE.md
+
 # OS cruft
 .DS_Store
 Thumbs.db
