@@ -23,7 +23,6 @@ A Claude Code / OpenClaw skill that downloads paper PDFs by DOI (or title). Reso
 | `README.md` | Quick start, features, install, comparison |
 | `README_CN.md` | Chinese documentation |
 | `tests/test_fetch.py` | Unit + integration tests (stdlib `unittest`, no network) |
-| `agents/openai.yaml` | OpenAI Codex sidecar manifest |
 | `docs/{index,zh}.html` | Marketing pages |
 | `plan/institutional-access.md` | Design notes on institutional mode |
 
@@ -39,10 +38,7 @@ Tests are hermetic — no network, no auto-update (the test runner sets `PAPER_F
 
 ## Version Bumping
 
-`CLI_VERSION` in `skills/paper-fetch/scripts/fetch.py` is the source of truth. When bumping it, also update:
-
-- `metadata.version` in `skills/paper-fetch/SKILL.md` frontmatter (the sync workflow reads this to bump `marketplace.json` in 365-skills)
-- `version:` in `agents/openai.yaml`
+`CLI_VERSION` in `skills/paper-fetch/scripts/fetch.py` is the source of truth. When bumping it, also update `metadata.version` in `skills/paper-fetch/SKILL.md` frontmatter — the sync workflow reads this to bump `marketplace.json` in 365-skills.
 
 ## Key Constraints
 
