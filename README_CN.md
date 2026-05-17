@@ -1,6 +1,20 @@
-# paper-fetch — 按 DOI 自动下载论文 PDF 📄
+# paper-fetch — 按 DOI 自动下载论文 PDF
 
-[English](README.md) | [Unpaywall](https://unpaywall.org) | [Semantic Scholar](https://www.semanticscholar.org) | [bioRxiv API](https://api.biorxiv.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Agents365-ai/paper-fetch?style=flat&logo=github)](https://github.com/Agents365-ai/paper-fetch/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Agents365-ai/paper-fetch?style=flat&logo=github)](https://github.com/Agents365-ai/paper-fetch/network/members)
+[![Latest Release](https://img.shields.io/github/v/release/Agents365-ai/paper-fetch?logo=github)](https://github.com/Agents365-ai/paper-fetch/releases/latest)
+[![Last Commit](https://img.shields.io/github/last-commit/Agents365-ai/paper-fetch?logo=github)](https://github.com/Agents365-ai/paper-fetch/commits/main)
+
+[![SkillsMP](https://img.shields.io/badge/SkillsMP-listed-1f6feb)](https://skillsmp.com/skills/agents365-ai-paper-fetch-skills-paper-fetch-skill-md)
+[![ClawHub](https://img.shields.io/badge/ClawHub-listed-ff6b35)](https://clawhub.ai/agents365-ai/paper-fetch-pro-skill)
+[![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-plugin-8a2be2)](https://github.com/Agents365-ai/365-skills)
+[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-compatible-2ea44f)](https://agentskills.io)
+[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/79JF5Atuk)
+
+[English](README.md) · **中文** · [📖 在线文档](https://agents365-ai.github.io/paper-fetch/zh.html)
+
+将 DOI（或标题）解析为 PDF — 7 源回退链：[Unpaywall](https://unpaywall.org) → [Semantic Scholar](https://www.semanticscholar.org) → [arXiv](https://arxiv.org) → [PubMed Central](https://pmc.ncbi.nlm.nih.gov) → [bioRxiv](https://www.biorxiv.org)/[medRxiv](https://www.medrxiv.org) → 出版商直链 → [Sci-Hub](https://www.sci-hub.pub) 镜像。纯 Python 标准库，agent 原生 CLI，稳定 JSON 信封。
 
 ## 功能简介
 
@@ -136,13 +150,18 @@ export PAPER_FETCH_INSTITUTIONAL=1
 - **SSRF 防护**会拒绝私网 IP、非 http(s) 协议、非 80/443 端口、云元数据主机
 - **每个 PDF 体积上限 50 MB**
 
-## License
+## 🔗 相关 Skills
 
-MIT
+属于 [Agents365-ai 学术研究 skill 系列](https://github.com/Agents365-ai) —— 按需挑选合适的工具：
 
-## 社区
+| Skill | 定位 | 何时使用 |
+|---|---|---|
+| [semanticscholar-skill](https://github.com/Agents365-ai/semanticscholar-skill) | Semantic Scholar API 检索 | 下载前先 **找** 论文时 |
+| [asta-skill](https://github.com/Agents365-ai/asta-skill) | 经 Ai2 Asta MCP 访问相同语料 | 宿主支持 MCP 且有 Asta API key 时 |
+| [scholar-deep-research](https://github.com/Agents365-ai/scholar-deep-research) | 8 阶段文献综述流水线 | 需要的不只是 PDF，而是带引用的结构化报告 |
+| [zotero-research-assistant](https://github.com/Agents365-ai/zotero-research-assistant) | Zotero 文献库工作流 | 把文献存进 Zotero 时 |
 
-加入交流群获取帮助、提问和最新动态:
+## 💬 社区
 
 - **Discord:** https://discord.gg/79JF5Atuk
 - **微信:** 扫描下方二维码
@@ -151,9 +170,9 @@ MIT
   <img src="https://raw.githubusercontent.com/Agents365-ai/images_payment/main/qrcode/agents365ai_wechat_1.png" width="200" alt="微信交流群">
 </p>
 
-## 支持作者
+## ❤️ 支持作者
 
-如果这个 skill 对你有帮助,欢迎打赏支持作者:
+如果这个 skill 对你有帮助，欢迎打赏支持作者：
 
 <table>
   <tr>
@@ -180,9 +199,13 @@ MIT
   </tr>
 </table>
 
-## 作者
+## 👤 作者
 
 **Agents365-ai**
 
-- Bilibili: https://space.bilibili.com/441831884
 - GitHub: https://github.com/Agents365-ai
+- Bilibili: https://space.bilibili.com/441831884
+
+## 📄 License
+
+[MIT](LICENSE)

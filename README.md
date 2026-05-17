@@ -1,6 +1,20 @@
-# paper-fetch — Download scientific paper PDFs by DOI 📄
+# paper-fetch — Download scientific paper PDFs by DOI
 
-[中文文档](README_CN.md) | [Unpaywall](https://unpaywall.org) | [Semantic Scholar](https://www.semanticscholar.org) | [bioRxiv API](https://api.biorxiv.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Agents365-ai/paper-fetch?style=flat&logo=github)](https://github.com/Agents365-ai/paper-fetch/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Agents365-ai/paper-fetch?style=flat&logo=github)](https://github.com/Agents365-ai/paper-fetch/network/members)
+[![Latest Release](https://img.shields.io/github/v/release/Agents365-ai/paper-fetch?logo=github)](https://github.com/Agents365-ai/paper-fetch/releases/latest)
+[![Last Commit](https://img.shields.io/github/last-commit/Agents365-ai/paper-fetch?logo=github)](https://github.com/Agents365-ai/paper-fetch/commits/main)
+
+[![SkillsMP](https://img.shields.io/badge/SkillsMP-listed-1f6feb)](https://skillsmp.com/skills/agents365-ai-paper-fetch-skills-paper-fetch-skill-md)
+[![ClawHub](https://img.shields.io/badge/ClawHub-listed-ff6b35)](https://clawhub.ai/agents365-ai/paper-fetch-pro-skill)
+[![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-plugin-8a2be2)](https://github.com/Agents365-ai/365-skills)
+[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-compatible-2ea44f)](https://agentskills.io)
+[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/79JF5Atuk)
+
+**English** · [中文](README_CN.md) · [📖 Online Docs](https://agents365-ai.github.io/paper-fetch/)
+
+Resolve a DOI (or title) to a PDF via a 7-source fallback chain — [Unpaywall](https://unpaywall.org) → [Semantic Scholar](https://www.semanticscholar.org) → [arXiv](https://arxiv.org) → [PubMed Central](https://pmc.ncbi.nlm.nih.gov) → [bioRxiv](https://www.biorxiv.org)/[medRxiv](https://www.medrxiv.org) → publisher direct → [Sci-Hub](https://www.sci-hub.pub) mirrors. Pure Python stdlib, agent-native CLI with stable JSON envelopes.
 
 ## What it does
 
@@ -136,13 +150,18 @@ See [`plan/institutional-access.md`](plan/institutional-access.md) for design de
 - **SSRF defense** rejects private IPs, non-http(s) schemes, non-80/443 ports, cloud metadata hosts
 - **50 MB cap** per PDF download
 
-## License
+## 🔗 Related Skills
 
-MIT
+Part of the [Agents365-ai research-skill family](https://github.com/Agents365-ai) — pick the right tool for the job:
 
-## Community
+| Skill | Niche | When to use |
+|---|---|---|
+| [semanticscholar-skill](https://github.com/Agents365-ai/semanticscholar-skill) | Semantic Scholar API search | When you need to FIND papers before fetching |
+| [asta-skill](https://github.com/Agents365-ai/asta-skill) | Same corpus via Ai2 Asta MCP | When your host supports MCP and you have an Asta API key |
+| [scholar-deep-research](https://github.com/Agents365-ai/scholar-deep-research) | 8-phase literature review pipeline | When you want a structured cited report, not just PDFs |
+| [zotero-research-assistant](https://github.com/Agents365-ai/zotero-research-assistant) | Zotero library workflows | When references go into Zotero |
 
-Join us for help, Q&A, and updates:
+## 💬 Community
 
 - **Discord:** https://discord.gg/79JF5Atuk
 - **WeChat:** scan the QR code below
@@ -151,7 +170,7 @@ Join us for help, Q&A, and updates:
   <img src="https://raw.githubusercontent.com/Agents365-ai/images_payment/main/qrcode/agents365ai_wechat_1.png" width="200" alt="WeChat Community Group">
 </p>
 
-## Support
+## ❤️ Support
 
 If this skill helps you, consider supporting the author:
 
@@ -180,9 +199,13 @@ If this skill helps you, consider supporting the author:
   </tr>
 </table>
 
-## Author
+## 👤 Author
 
 **Agents365-ai**
 
-- Bilibili: https://space.bilibili.com/441831884
 - GitHub: https://github.com/Agents365-ai
+- Bilibili: https://space.bilibili.com/441831884
+
+## 📄 License
+
+[MIT](LICENSE)
