@@ -35,6 +35,11 @@ Resolve a DOI (or title) to a PDF via a 7-source fallback chain — [Unpaywall](
 - SSRF defense + `%PDF` magic-byte check + 50 MB size cap on every fetch
 - Zero runtime dependencies — pure Python stdlib
 
+**Cloudflare-blocked PDFs** *(opt-in)*
+- `PAPER_FETCH_CLOAK=1` retries any 403/429-blocked or JS-challenged PDF URL through [CloakBrowser](https://github.com/CloakHQ/CloakBrowser), a stealth Chromium that passes the challenge (approach borrowed from [cloakFetch](https://github.com/Agents365-ai/cloakFetch))
+- Sits at the download layer, so it applies to every source; off by default, fails closed, operator-controlled
+- Returned bytes re-validated through the same `%PDF` + size checks; result carries `via: "cloak"`
+
 Works with Claude Code, Codex, Hermes, OpenClaw, ClawHub, pi-mono, and SkillsMP — any agent that supports the [Agent Skills](https://agentskills.io) format.
 
 ## Discipline coverage
@@ -142,6 +147,18 @@ export PAPER_FETCH_INSTITUTIONAL=1
 ```
 
 See [`plan/institutional-access.md`](plan/institutional-access.md) for design details.
+
+## Cloudflare-blocked PDFs via CloakBrowser (opt-in)
+
+Some publishers (e.g. `science.org`) sit behind Cloudflare, which serves a `403`/`429` or a "Just a moment…" JS challenge to plain HTTP clients instead of the PDF. Set `PAPER_FETCH_CLOAK=1` to retry those URLs through [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) — a stealth Chromium that passes the challenge. The approach is borrowed from [cloakFetch](https://github.com/Agents365-ai/cloakFetch).
+
+```bash
+# Requires a Python with `cloakbrowser` importable (pip install cloakbrowser)
+export PAPER_FETCH_CLOAK=1
+export CLOAKBROWSER_PYTHON="$HOME/github/CloakBrowser/.venv/bin/python"  # if not auto-detected
+```
+
+The fallback lives at the download layer (so it covers every source), re-validates returned bytes through the same `%PDF` + 50 MB checks, fails closed when CloakBrowser is unavailable, and is operator-controlled — the agent cannot enable it. Successful cloak downloads carry `via: "cloak"` in the result. See [`skills/paper-fetch/SKILL.md`](skills/paper-fetch/SKILL.md) (*CloakBrowser access*) for details.
 
 ## Known limitations
 

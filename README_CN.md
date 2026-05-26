@@ -35,6 +35,11 @@
 - 每次外部抓取都执行 SSRF 防护 + `%PDF` 魔数校验 + 50 MB 体积上限
 - 零运行时依赖 — 纯 Python 标准库
 
+**Cloudflare 拦截的 PDF** *(可选)*
+- `PAPER_FETCH_CLOAK=1` 会将被 403/429 拦截或遇到 JS 挑战的 PDF 链接,改用 [CloakBrowser](https://github.com/CloakHQ/CloakBrowser)(可通过挑战的隐身 Chromium)重试(方案借鉴自 [cloakFetch](https://github.com/Agents365-ai/cloakFetch))
+- 位于下载层,因此对所有源生效;默认关闭、失败时静默回退、仅由操作者控制
+- 返回的字节仍经过相同的 `%PDF` + 体积校验;结果带 `via: "cloak"` 标记
+
 兼容 Claude Code、Codex、Hermes、OpenClaw、ClawHub、pi-mono、SkillsMP — 所有支持 [Agent Skills](https://agentskills.io) 格式的 Agent。
 
 ## 学科覆盖
@@ -143,10 +148,22 @@ export PAPER_FETCH_INSTITUTIONAL=1
 
 详见 [`plan/institutional-access.md`](plan/institutional-access.md)。
 
+## 通过 CloakBrowser 抓取 Cloudflare 拦截的 PDF(可选)
+
+部分出版商(如 `science.org`)位于 Cloudflare 之后,会向普通 HTTP 客户端返回 `403`/`429` 或 "Just a moment…" JS 挑战页,而非 PDF。设 `PAPER_FETCH_CLOAK=1` 即可将这些链接改用 [CloakBrowser](https://github.com/CloakHQ/CloakBrowser)(可通过挑战的隐身 Chromium)重试。方案借鉴自 [cloakFetch](https://github.com/Agents365-ai/cloakFetch)。
+
+```bash
+# 需要一个可 import cloakbrowser 的 Python(pip install cloakbrowser)
+export PAPER_FETCH_CLOAK=1
+export CLOAKBROWSER_PYTHON="$HOME/github/CloakBrowser/.venv/bin/python"  # 若未自动识别
+```
+
+该回退位于下载层(覆盖所有源),返回字节仍经过相同的 `%PDF` + 50 MB 校验,CloakBrowser 不可用时静默回退,且仅由操作者控制 —— Agent 无法自行启用。成功的 cloak 下载结果带 `via: "cloak"`。详见 [`skills/paper-fetch/SKILL.md`](skills/paper-fetch/SKILL.md)(*CloakBrowser access*)。
+
 ## 已知限制
 
 - **部分出版商重定向**会返回 HTML 落地页,`%PDF` 魔数校验会拒绝
-- **不做浏览器自动化** — 不解 CAPTCHA、不用 Playwright、不做反指纹绕过
+- **默认不做浏览器自动化** — 不解 CAPTCHA、不用 Playwright、不做反指纹绕过。(浏览器自动化是独立的可选项:上面 `PAPER_FETCH_CLOAK` 控制的 CloakBrowser 回退。)
 - **SSRF 防护**会拒绝私网 IP、非 http(s) 协议、非 80/443 端口、云元数据主机
 - **每个 PDF 体积上限 50 MB**
 
