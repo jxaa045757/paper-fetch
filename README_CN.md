@@ -156,9 +156,12 @@ export PAPER_FETCH_INSTITUTIONAL=1
 # 需要一个可 import cloakbrowser 的 Python(pip install cloakbrowser)
 export PAPER_FETCH_CLOAK=1
 export CLOAKBROWSER_PYTHON="$HOME/github/CloakBrowser/.venv/bin/python"  # 若未自动识别
+export PAPER_FETCH_CLOAK_HEADED=1   # 针对 headless 无法通过的强挑战(如 science.org)
 ```
 
-该回退位于下载层(覆盖所有源),返回字节仍经过相同的 `%PDF` + 50 MB 校验,CloakBrowser 不可用时静默回退,且仅由操作者控制 —— Agent 无法自行启用。成功的 cloak 下载结果带 `via: "cloak"`。详见 [`skills/paper-fetch/SKILL.md`](skills/paper-fetch/SKILL.md)(*CloakBrowser access*)。
+该回退位于下载层(覆盖所有源),返回字节仍经过相同的 `%PDF` + 50 MB 校验,CloakBrowser 不可用时静默回退,且仅由操作者控制 —— Agent 无法自行启用。成功的 cloak 下载结果带 `via: "cloak"`。
+
+浏览器默认 **headless**;较强的挑战(如 `science.org`)在 headless 下会卡在 "Just a moment…",此时设 `PAPER_FETCH_CLOAK_HEADED=1` 用可见窗口通过(需要显示环境)。页面内 fetch 为 **同源**,因此适用于被拦截主机上的直链 PDF(如 `www.science.org/doi/pdf/…`);跨源重定向的链接会静默回退。详见 [`skills/paper-fetch/SKILL.md`](skills/paper-fetch/SKILL.md)(*CloakBrowser access*)。
 
 ## 已知限制
 

@@ -156,9 +156,12 @@ Some publishers (e.g. `science.org`) sit behind Cloudflare, which serves a `403`
 # Requires a Python with `cloakbrowser` importable (pip install cloakbrowser)
 export PAPER_FETCH_CLOAK=1
 export CLOAKBROWSER_PYTHON="$HOME/github/CloakBrowser/.venv/bin/python"  # if not auto-detected
+export PAPER_FETCH_CLOAK_HEADED=1   # for hard challenges (e.g. science.org) that defeat headless
 ```
 
-The fallback lives at the download layer (so it covers every source), re-validates returned bytes through the same `%PDF` + 50 MB checks, fails closed when CloakBrowser is unavailable, and is operator-controlled — the agent cannot enable it. Successful cloak downloads carry `via: "cloak"` in the result. See [`skills/paper-fetch/SKILL.md`](skills/paper-fetch/SKILL.md) (*CloakBrowser access*) for details.
+The fallback lives at the download layer (so it covers every source), re-validates returned bytes through the same `%PDF` + 50 MB checks, fails closed when CloakBrowser is unavailable, and is operator-controlled — the agent cannot enable it. Successful cloak downloads carry `via: "cloak"` in the result.
+
+By default the browser runs **headless**; harder challenges (e.g. `science.org`) get stuck on "Just a moment…" in headless mode, so set `PAPER_FETCH_CLOAK_HEADED=1` for a visible window that clears them (needs a display). The in-page fetch is **same-origin**, so it works for direct PDF links on the blocked host (e.g. `www.science.org/doi/pdf/…`); cross-origin-redirecting URLs fall through. See [`skills/paper-fetch/SKILL.md`](skills/paper-fetch/SKILL.md) (*CloakBrowser access*) for details.
 
 ## Known limitations
 
