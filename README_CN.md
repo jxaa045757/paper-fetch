@@ -10,8 +10,6 @@
 [![ClawHub](https://img.shields.io/badge/ClawHub-listed-ff6b35)](https://clawhub.ai/agents365-ai/paper-fetch-pro-skill)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-plugin-8a2be2)](https://github.com/Agents365-ai/365-skills)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-compatible-2ea44f)](https://agentskills.io)
-[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/79JF5Atuk)
-
 [English](README.md) · **中文** · [📖 在线文档](https://agents365-ai.github.io/paper-fetch/zh.html)
 
 将 DOI（或标题）解析为 PDF — 7 源回退链：[Unpaywall](https://unpaywall.org) → [Semantic Scholar](https://www.semanticscholar.org) → [arXiv](https://arxiv.org) → [PubMed Central](https://pmc.ncbi.nlm.nih.gov) → [bioRxiv](https://www.biorxiv.org)/[medRxiv](https://www.medrxiv.org) → 出版商直链 → [Sci-Hub](https://www.sci-hub.pub) 镜像。纯 Python 标准库，agent 原生 CLI，稳定 JSON 信封。
@@ -19,23 +17,27 @@
 ## 功能简介
 
 **DOI（或标题）→ PDF**
+
 - 7 源回退链：[Unpaywall](https://unpaywall.org) → [Semantic Scholar](https://www.semanticscholar.org) → [arXiv](https://arxiv.org) → [PubMed Central](https://pmc.ncbi.nlm.nih.gov) → [bioRxiv](https://www.biorxiv.org)/[medRxiv](https://www.medrxiv.org) → 出版商直链 *（机构模式启用）* → [Sci-Hub](https://www.sci-hub.pub) 镜像 *（默认开启的兜底）*
 - 仅有标题时通过 `--title` 解析 — Crossref + Semantic Scholar 双路回退，附置信度标记
 - 自动命名：`{第一作者}_{年份}_{期刊简称}_{简短标题}.pdf`
 
 **批量 + Agent 友好**
+
 - `--batch dois.txt` 或 `--batch -`（stdin）批量下载
 - `--idempotency-key` 重试时直接复用原信封，无任何网络 I/O
 - `--stream` 在每个 DOI 解析完成时立即输出一行 NDJSON
 - 已下载文件默认跳过；`--overwrite` 强制覆盖
 
 **内置正确性保障**
+
 - stdout 稳定 JSON 信封，stderr NDJSON 进度，机器可读的 `schema` 子命令
 - `--format` 自动识别 TTY,退出码分类（`0`/`1`/`3`/`4`)便于 orchestrator 路由
 - 每次外部抓取都执行 SSRF 防护 + `%PDF` 魔数校验 + 50 MB 体积上限
 - 零运行时依赖 — 纯 Python 标准库
 
 **Cloudflare 拦截的 PDF** *(可选)*
+
 - `PAPER_FETCH_CLOAK=1` 会将被 403/429 拦截或遇到 JS 挑战的 PDF 链接,改用 [CloakBrowser](https://github.com/CloakHQ/CloakBrowser)(可通过挑战的隐身 Chromium)重试(方案借鉴自 [cloakFetch](https://github.com/Agents365-ai/cloakFetch))
 - 位于下载层,因此对所有源生效;默认关闭、失败时静默回退、仅由操作者控制
 - 返回的字节仍经过相同的 `%PDF` + 体积校验;结果带 `via: "cloak"` 标记
@@ -47,7 +49,7 @@
 本 skill **学科无关**,不限于生命科学或 CS。
 
 | 来源 | 学科范围 |
-|---|---|
+| --- | --- |
 | Unpaywall | ✅ 全学科(覆盖 Crossref 所有 DOI — 人文、社科、物理、化学、经济等) |
 | Semantic Scholar | ✅ 全学科(跨领域学术图谱) |
 | arXiv | 物理、数学、CS、统计、定量金融、经济学、EE |
@@ -62,7 +64,7 @@
 ### vs 原生 agent(无 skill)
 
 | 功能 | 原生 agent | 本 skill |
-|---|---|---|
+| --- | --- | --- |
 | DOI → PDF | 临时网络搜索 | 确定性 7 源链 |
 | 标题 → DOI | 手动 | `--title`(Crossref + S2 回退,附置信度标记) |
 | 批量下载 | ❌ | ✅ `--batch dois.txt` 或 `--batch -` |
@@ -175,20 +177,11 @@ export PAPER_FETCH_CLOAK_HEADED=1   # 针对 headless 无法通过的强挑战(�
 属于 [Agents365-ai 学术研究 skill 系列](https://github.com/Agents365-ai) —— 按需挑选合适的工具：
 
 | Skill | 定位 | 何时使用 |
-|---|---|---|
+| --- | --- | --- |
 | [semanticscholar-skill](https://github.com/Agents365-ai/semanticscholar-skill) | Semantic Scholar API 检索 | 下载前先 **找** 论文时 |
 | [asta-skill](https://github.com/Agents365-ai/asta-skill) | 经 Ai2 Asta MCP 访问相同语料 | 宿主支持 MCP 且有 Asta API key 时 |
 | [scholar-deep-research](https://github.com/Agents365-ai/scholar-deep-research) | 8 阶段文献综述流水线 | 需要的不只是 PDF，而是带引用的结构化报告 |
 | [zotero-research-assistant](https://github.com/Agents365-ai/zotero-research-assistant) | Zotero 文献库工作流 | 把文献存进 Zotero 时 |
-
-## 💬 社区
-
-- **Discord:** https://discord.gg/79JF5Atuk
-- **微信:** 扫描下方二维码
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Agents365-ai/images_payment/main/qrcode/agents365ai_wechat_1.png" width="200" alt="微信交流群">
-</p>
 
 ## ❤️ 支持作者
 
@@ -223,8 +216,8 @@ export PAPER_FETCH_CLOAK_HEADED=1   # 针对 headless 无法通过的强挑战(�
 
 **Agents365-ai**
 
-- GitHub: https://github.com/Agents365-ai
-- Bilibili: https://space.bilibili.com/441831884
+- GitHub: <https://github.com/Agents365-ai>
+- Bilibili: <https://space.bilibili.com/441831884>
 
 ## 📄 License
 
